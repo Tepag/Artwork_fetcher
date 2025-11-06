@@ -27,7 +27,9 @@ def fetch_first_artwork_image(artwork_url: str) -> Optional[str]:
     imgs = page.query_selector_all("img")
     image_urls = [img.get_attribute("src") for img in imgs if img.get_attribute("src")]
     print(f"image_urls: {image_urls}")
-    return image_urls[0]
+    if image_urls:
+        return image_urls[0]
+    return None
 
 
 def download_artwork_image(image_url: str) -> Optional[bytes]:

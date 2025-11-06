@@ -121,6 +121,25 @@ def has_embedded_artwork(file_path: str) -> bool:
 
 
 
+def _extract_tag_value(tag_value):
+    """
+    Safely extract and convert a tag value to string.
+    Handles lists, bytes, strings, and empty values.
+    """
+    if tag_value is None:
+        return None
+    if isinstance(tag_value, list):
+        if len(tag_value) == 0:
+            return None
+        tag_value = tag_value[0]
+    if isinstance(tag_value, bytes):
+        try:
+            return tag_value.decode('utf-8')
+        except UnicodeDecodeError:
+            return tag_value.decode('utf-8', errors='replace')
+    return str(tag_value)
+
+
 def get_music_metadata(file_path: str) -> Dict[str, Optional[str]]:
     """
     Extract artist and album/title from a music file.
@@ -165,65 +184,52 @@ def get_music_metadata(file_path: str) -> Dict[str, Optional[str]]:
                 
                 for tag in artist_tags:
                     if tag in audio_file.tags:
-                        metadata['artist'] = str(audio_file.tags[tag][0])
-                        break
+                        metadata['artist'] = _extract_tag_value(audio_file.tags[tag])
+                        if metadata['artist']:
+                            break
                 
                 for tag in album_tags:
                     if tag in audio_file.tags:
-                        metadata['album'] = str(audio_file.tags[tag][0])
-                        break
+                        metadata['album'] = _extract_tag_value(audio_file.tags[tag])
+                        if metadata['album']:
+                            break
                 
                 for tag in title_tags:
                     if tag in audio_file.tags:
-                        metadata['title'] = str(audio_file.tags[tag][0])
-                        break
+                        metadata['title'] = _extract_tag_value(audio_file.tags[tag])
+                        if metadata['title']:
+                            break
         
         elif isinstance(audio_file, FLAC):
             # FLAC files use Vorbis comments
             if audio_file.tags is not None:
                 if 'artist' in audio_file.tags:
-                    metadata['artist'] = str(audio_file.tags['artist'][0])
+                    metadata['artist'] = _extract_tag_value(audio_file.tags['artist'])
                 if 'album' in audio_file.tags:
-                    metadata['album'] = str(audio_file.tags['album'][0])
+                    metadata['album'] = _extract_tag_value(audio_file.tags['album'])
                 if 'title' in audio_file.tags:
-                    metadata['title'] = str(audio_file.tags['title'][0])
+                    metadata['title'] = _extract_tag_value(audio_file.tags['title'])
         
         elif isinstance(audio_file, MP4):
             # MP4/M4A files use iTunes tags
             if audio_file.tags is not None:
                 # MP4 uses different tag names
-                # MP4 tags can be lists or single values, and may contain bytes or strings
-                def extract_mp4_tag_value(tag_value):
-                    """Extract and convert MP4 tag value to string."""
-                    if tag_value is None:
-                        return None
-                    if isinstance(tag_value, list):
-                        if len(tag_value) == 0:
-                            return None
-                        tag_value = tag_value[0]
-                    if isinstance(tag_value, bytes):
-                        try:
-                            return tag_value.decode('utf-8')
-                        except UnicodeDecodeError:
-                            return tag_value.decode('utf-8', errors='replace')
-                    return str(tag_value)
-                
                 if '\xa9ART' in audio_file.tags:
-                    metadata['artist'] = extract_mp4_tag_value(audio_file.tags['\xa9ART'])
+                    metadata['artist'] = _extract_tag_value(audio_file.tags['\xa9ART'])
                 if '\xa9alb' in audio_file.tags:
-                    metadata['album'] = extract_mp4_tag_value(audio_file.tags['\xa9alb'])
+                    metadata['album'] = _extract_tag_value(audio_file.tags['\xa9alb'])
                 if '\xa9nam' in audio_file.tags:
-                    metadata['title'] = extract_mp4_tag_value(audio_file.tags['\xa9nam'])
+                    metadata['title'] = _extract_tag_value(audio_file.tags['\xa9nam'])
         
         elif isinstance(audio_file, OggVorbis):
             # OGG files use Vorbis comments
             if audio_file.tags is not None:
                 if 'artist' in audio_file.tags:
-                    metadata['artist'] = str(audio_file.tags['artist'][0])
+                    metadata['artist'] = _extract_tag_value(audio_file.tags['artist'])
                 if 'album' in audio_file.tags:
-                    metadata['album'] = str(audio_file.tags['album'][0])
+                    metadata['album'] = _extract_tag_value(audio_file.tags['album'])
                 if 'title' in audio_file.tags:
-                    metadata['title'] = str(audio_file.tags['title'][0])
+                    metadata['title'] = _extract_tag_value(audio_file.tags['title'])
         
         else:
             # Generic fallback - try common tag names
@@ -232,18 +238,21 @@ def get_music_metadata(file_path: str) -> Dict[str, Optional[str]]:
                 # Try various common tag formats
                 for artist_key in ['artist', 'ARTIST', 'TPE1', '\xa9ART']:
                     if artist_key in tags:
-                        metadata['artist'] = str(tags[artist_key][0] if isinstance(tags[artist_key], list) else tags[artist_key])
-                        break
+                        metadata['artist'] = _extract_tag_value(tags[artist_key])
+                        if metadata['artist']:
+                            break
                 
                 for album_key in ['album', 'ALBUM', 'TALB', '\xa9alb']:
                     if album_key in tags:
-                        metadata['album'] = str(tags[album_key][0] if isinstance(tags[album_key], list) else tags[album_key])
-                        break
+                        metadata['album'] = _extract_tag_value(tags[album_key])
+                        if metadata['album']:
+                            break
                 
                 for title_key in ['title', 'TITLE', 'TIT2', '\xa9nam']:
                     if title_key in tags:
-                        metadata['title'] = str(tags[title_key][0] if isinstance(tags[title_key], list) else tags[title_key])
-                        break
+                        metadata['title'] = _extract_tag_value(tags[title_key])
+                        if metadata['title']:
+                            break
         
         return metadata
     
