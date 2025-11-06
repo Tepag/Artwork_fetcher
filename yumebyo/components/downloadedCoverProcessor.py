@@ -5,9 +5,9 @@ Artwork fetching, downloading, and embedding utilities.
 import base64
 from typing import Optional
 import requests
+from .webMetadataFetcher import get_context
+from .localMusicScanner import MUTAGEN_AVAILABLE
 
-from app.browser import get_context
-from app.metadata import MUTAGEN_AVAILABLE
 import time
 
 def fetch_first_artwork_image(artwork_url: str) -> Optional[str]:

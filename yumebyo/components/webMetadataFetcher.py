@@ -81,9 +81,8 @@ def build_youtube_url_with_params(
     
     # Build the URL
     if params:
-        query_string = urlencode(params)
-        separator = '&' if '?' in base_url else '?'
-        return f"{base_url}{separator}{query_string}"
+        query_string = urlencode(base_url + params['artist'] + '+' + params['title'])
+        return query_string
     
     return base_url
 
@@ -176,7 +175,7 @@ def get_artwork_url_from_music_file(
     
     metadata = get_music_metadata(file_path)
     
-    return build_url_with_params(
+    return build_musichoarders_url_with_params(
         base_url=base_url,
         theme=theme,
         resolution=resolution,

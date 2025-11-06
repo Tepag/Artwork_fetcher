@@ -1,10 +1,9 @@
 import os
 from typing import Dict, List, Optional
-
-from components.localMusicScanner import get_local_music_file_paths
-from components.localMusicScanner import has_embedded_artwork, get_music_metadata, MUTAGEN_AVAILABLE
-from components.webMetadataFetcher import build_musichoarders_url_with_params, build_youtube_url_with_params
-from components.downloadedCoverProcessor import download_and_embed_artwork
+from .components.localMusicScanner import get_local_music_file_paths
+from .components.localMusicScanner import has_embedded_artwork, get_music_metadata, MUTAGEN_AVAILABLE
+from .components.webMetadataFetcher import build_musichoarders_url_with_params, build_youtube_url_with_params
+from .components.downloadedCoverProcessor import download_and_embed_artwork
 
 
 def yumebyo(
@@ -93,11 +92,11 @@ def yumebyo(
                         if verbose:
                             print()
 
-                        #success = download_and_embed_artwork(file_path, musichoarders_artwork_url, verbose=verbose)
-                        #if not success:
-                            #success = download_and_embed_artwork(file_path, youtube_artwork_url, verbose=verbose)
+                        success = download_and_embed_artwork(file_path, musichoarders_artwork_url, verbose=verbose)
+                        if not success:
+                            success = download_and_embed_artwork(file_path, youtube_artwork_url, verbose=verbose)
 
-                        #if success:
+                        if success:
                             results['with_artwork'].append(file_path)  # Move to with_artwork after embedding
                             if file_path in results['without_artwork']:
                                 results['without_artwork'].remove(file_path)
