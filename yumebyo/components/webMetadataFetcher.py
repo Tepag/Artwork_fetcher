@@ -3,7 +3,7 @@ Browser management for Playwright-based artwork fetching.
 """
 
 from playwright.sync_api import Browser, BrowserContext, Playwright, sync_playwright
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote_plus
 from typing import Optional, List
 
 
@@ -71,18 +71,18 @@ def build_youtube_url_with_params(
     Returns:
         Complete URL with query parameters
     """
-    params = {}
-    
+    # Build the search query by combining artist and title
+    query_parts = []
     if artist:
-        params['artist'] = artist
-    
+        query_parts.append(artist)
     if title:
-        params['title'] = title
+        query_parts.append(title)
     
-    # Build the URL
-    if params:
-        query_string = urlencode(base_url + params['artist'] + '+' + params['title'])
-        return query_string
+    if query_parts:
+        # Join with '+' and URL-encode the query
+        query = ' '.join(query_parts)
+        encoded_query = quote_plus(query)
+        return f"{base_url}{encoded_query}"
     
     return base_url
 
@@ -171,7 +171,7 @@ def get_artwork_url_from_music_file(
     Returns:
         Complete URL with query parameters based on extracted metadata
     """
-    from app.metadata import get_music_metadata
+    from .localMusicScanner import get_music_metadata
     
     metadata = get_music_metadata(file_path)
     

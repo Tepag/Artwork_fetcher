@@ -118,7 +118,7 @@ def yumebyo(
         print(f"Summary:")
         print(f"  Files with artwork: {len(results['with_artwork'])}")
         print(f"  Files without artwork: {len(results['without_artwork'])}")
-        print(f"  Artwork URLs generated: {len(results['artwork_urls'])}")
+        print(f"  Artwork URLs generated: {len(results['artwork_urls_musichoarders'])}")
     
     return results
 

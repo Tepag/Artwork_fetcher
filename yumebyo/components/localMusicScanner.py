@@ -192,12 +192,28 @@ def get_music_metadata(file_path: str) -> Dict[str, Optional[str]]:
             # MP4/M4A files use iTunes tags
             if audio_file.tags is not None:
                 # MP4 uses different tag names
+                # MP4 tags can be lists or single values, and may contain bytes or strings
+                def extract_mp4_tag_value(tag_value):
+                    """Extract and convert MP4 tag value to string."""
+                    if tag_value is None:
+                        return None
+                    if isinstance(tag_value, list):
+                        if len(tag_value) == 0:
+                            return None
+                        tag_value = tag_value[0]
+                    if isinstance(tag_value, bytes):
+                        try:
+                            return tag_value.decode('utf-8')
+                        except UnicodeDecodeError:
+                            return tag_value.decode('utf-8', errors='replace')
+                    return str(tag_value)
+                
                 if '\xa9ART' in audio_file.tags:
-                    metadata['artist'] = str(audio_file.tags['\xa9ART'][0])
+                    metadata['artist'] = extract_mp4_tag_value(audio_file.tags['\xa9ART'])
                 if '\xa9alb' in audio_file.tags:
-                    metadata['album'] = str(audio_file.tags['\xa9alb'][0])
+                    metadata['album'] = extract_mp4_tag_value(audio_file.tags['\xa9alb'])
                 if '\xa9nam' in audio_file.tags:
-                    metadata['title'] = str(audio_file.tags['\xa9nam'][0])
+                    metadata['title'] = extract_mp4_tag_value(audio_file.tags['\xa9nam'])
         
         elif isinstance(audio_file, OggVorbis):
             # OGG files use Vorbis comments
