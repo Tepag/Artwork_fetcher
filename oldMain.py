@@ -4,15 +4,16 @@ Main entry point for the Artwork Fetcher CLI.
 """
 
 import argparse
-from yumebyo.components.webMetadataFetcher import init_browser, close_browser
-from yumebyo.yumebyo import yumebyo
+from app.browser import init_browser, close_browser
+from app.processor import process_folder_for_artwork
+import time
 
 
 def main():
+    """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Metadata Fetcher based that fetches artwork from covers.musichoarders.xyz and youtube.com and embeds it into the music file"
+        description="Metadata Fetcher based on covers.musichoarders.xyz API."
     )
-
     parser.add_argument(
         '--dir', '-d',
         type=str,
@@ -20,13 +21,16 @@ def main():
         help="Path to your music folder"
     )
     args = parser.parse_args()
+
+    base_url = "https://covers.musichoarders.xyz"
     
     # Initialize browser
     init_browser()
 
     try:
-        results = yumebyo(
+        results = process_folder_for_artwork(
             folder_path=args.dir,
+            base_url=base_url,
             recursive=True,
             verbose=True
         )
@@ -35,6 +39,7 @@ def main():
         print(f"Error: {e}")
     finally:
         # Clean up browser
+        
         close_browser()
 
 
