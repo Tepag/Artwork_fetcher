@@ -4,13 +4,11 @@ from typing import Dict, List, Optional
 from components.localMusicScanner import get_local_music_file_paths
 from components.localMusicScanner import has_embedded_artwork, get_music_metadata, MUTAGEN_AVAILABLE
 from components.webMetadataFetcher import build_musichoarders_url_with_params, build_youtube_url_with_params
-from app.artwork import download_and_embed_artwork
+from components.downloadedCoverProcessor import download_and_embed_artwork
 
 
 def yumebyo(
     folder_path: str,
-    musichoarders_base_url: Optional[str] = "https://covers.musichoarders.xyz",
-    youtube_base_url: Optional[str] = "https://music.youtube.com/search?q=",
     theme: Optional[str] = None,
     resolution: Optional[str] = None,
     sources: Optional[List[str]] = None,
@@ -71,32 +69,35 @@ def yumebyo(
                     if metadata['artist'] or metadata['album']:
 
                         musichoarders_artwork_url = build_musichoarders_url_with_params(
-                            base_url=musichoarders_base_url,
                             sources=['spotify', 'applemusic'],
                             artist=metadata['artist'],
                             album=metadata['title']
                         )
-                        
-                        results['artwork_urls'][file_path] = musichoarders_artwork_url
+
+                        youtube_artwork_url = build_youtube_url_with_params(
+                            artist=metadata['artist'],
+                            title=metadata['title']
+                        )
+
+                        results['artwork_urls_youtube'][file_path] = youtube_artwork_url
+                        results['artwork_urls_musichoarders'][file_path] = musichoarders_artwork_url
+
                         if verbose:
                             print(f"✗ {os.path.basename(file_path)} - No artwork")
                             print(f"  Artist: {metadata['artist'] or 'N/A'}, Title: {metadata['title'] or 'N/A'}")
-                            print(f"  Artwork URL: {musichoarders_artwork_url}")
+                            print(f"  MusicHoarders Artwork URL: {musichoarders_artwork_url}")
+                            print(f"  YouTube Artwork URL: {youtube_artwork_url}")
                         
-                        if(musichoarders_artwork_url is None):
-                            youtube_artwork_url = build_youtube_url_with_params(
-                                base_url=musichoarders_base_url,
-                                sources=['spotify', 'applemusic'],
-                                artist=metadata['artist'],
-                                album=metadata['title']
-                            )
 
                         # Download and embed the artwork
                         if verbose:
                             print()
-                        success = download_and_embed_artwork(file_path, artwork_url, verbose=verbose)
-                        
-                        if success:
+
+                        #success = download_and_embed_artwork(file_path, musichoarders_artwork_url, verbose=verbose)
+                        #if not success:
+                            #success = download_and_embed_artwork(file_path, youtube_artwork_url, verbose=verbose)
+
+                        #if success:
                             results['with_artwork'].append(file_path)  # Move to with_artwork after embedding
                             if file_path in results['without_artwork']:
                                 results['without_artwork'].remove(file_path)

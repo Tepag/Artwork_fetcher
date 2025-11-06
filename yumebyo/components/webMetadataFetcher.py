@@ -48,14 +48,9 @@ URL building utilities for artwork fetching.
 
 
 def build_youtube_url_with_params(
-    base_url: str,
-    theme: Optional[str] = None,
-    resolution: Optional[str] = None,
-    sources: Optional[List[str]] = None,
-    country: Optional[str] = None,
+    base_url: Optional[str] = "https://music.youtube.com/search?q=",
     artist: Optional[str] = None,
-    album: Optional[str] = None,
-    identifier: Optional[str] = None
+    title: Optional[str] = None
 ) -> str:
     """
     Build a URL with query parameters for artwork fetching.
@@ -78,28 +73,11 @@ def build_youtube_url_with_params(
     """
     params = {}
     
-    if theme and theme.lower() in ['light', 'dark']:
-        params['theme'] = theme.lower()
-    
-    if resolution:
-        params['resolution'] = resolution
-    
-    if sources:
-        # All sources are lowercase and contain no spaces, punctuation or symbols
-        sources_clean = [s.lower().strip() for s in sources if s]
-        params['sources'] = ','.join(sources_clean)
-    
-    if country:
-        params['country'] = country
-    
     if artist:
         params['artist'] = artist
     
-    if album:
-        params['album'] = album
-    
-    if identifier:
-        params['identifier'] = identifier
+    if title:
+        params['title'] = title
     
     # Build the URL
     if params:
@@ -110,7 +88,7 @@ def build_youtube_url_with_params(
     return base_url
 
 def build_musichoarders_url_with_params(
-    base_url: str,
+    base_url: Optional[str] = "https://covers.musichoarders.xyz",
     theme: Optional[str] = None,
     resolution: Optional[str] = None,
     sources: Optional[List[str]] = None,

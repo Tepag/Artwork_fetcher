@@ -16,7 +16,11 @@ except ImportError:
 
 
 
-def get_local_music_file_paths(folder_path: str, recursive: bool = True) -> List[str]:
+def get_local_music_file_paths(
+    folder_path: str,
+    recursive: bool = True,
+    verbose: bool = True
+) -> List[str]:
     """
     Get the paths of all music files in a folder.
     
