@@ -2,9 +2,11 @@ import os
 from typing import Dict, List, Optional
 from .components.localMusicScanner import get_local_music_file_paths
 from .components.localMusicScanner import has_embedded_artwork, get_music_metadata, MUTAGEN_AVAILABLE
-from .components.webMetadataFetcher import build_musichoarders_url_with_params, build_youtube_url_with_params
-from .components.downloadedCoverProcessor import download_and_embed_artwork, embed_artwork
+from .components.webMetadataFetcher import build_musichoarders_url_with_params
+from .components.downloadedCoverProcessor import embed_artwork, download_and_embed_artwork
+from .components.images.download_and_embed_using_url import download_and_embed_artwork_using_url
 from .components.cover_processor import fetch_and_process_primary_cover
+from .components.youtube_music.get_thumbnail_url import get_thumbnail_url
 
 def yumebyo(
     folder_path: str,
@@ -84,23 +86,23 @@ def yumebyo(
                         if verbose:
                             print()
 
-                        success = download_and_embed_artwork(file_path, musichoarders_artwork_url, verbose=verbose)
+                        success = download_and_embed_artwork(file_path, musichoarders_artwork_url)
+
                         if not success:
-                            youtube_cover_bytes = fetch_and_process_primary_cover(
+
+                            if metadata['artist'] is not None and "nightcore" in metadata['artist'].lower() or metadata['title'] is not None and "nightcore" in metadata['title'].lower():
+                                print(f"search in videos")
+                                filter_val = "videos"
+                            else:
+                                filter_val = "songs"
+                         
+                            youtube_thumbnail_url = get_thumbnail_url(
                                 artist=metadata['artist'],
                                 title=metadata['title'],
-                                force_480=True,
+                                filter=filter_val
                             )
-                            if youtube_cover_bytes:
-                                if verbose:
-                                    print("  Attempting to embed YouTube Music cover (480x480)...")
-                                success = embed_artwork(
-                                    file_path,
-                                    youtube_cover_bytes,
-                                    mime_type='image/jpeg',
-                                )
-                            else:
-                                success = False
+
+                            success = download_and_embed_artwork_using_url(file_path, youtube_thumbnail_url)
 
                         if success:
                             results['with_artwork'].append(file_path)  # Move to with_artwork after embedding

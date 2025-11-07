@@ -27,6 +27,7 @@ def download_and_embed_artwork_using_url(
     mime_type: str = 'image/jpeg',
     square: bool = True,
     downscale_to_480: bool = False,
+    verbose: bool = True
 ) -> bool:
     """
     Download an artwork image from a URL and embed it into a music file.
@@ -54,21 +55,25 @@ def download_and_embed_artwork_using_url(
         if 'image' in content_type.lower():
             image_data = response.content
             if square:
-                print("Cropping image to square")
                 image_data = _crop_center_square(image_data)
             if downscale_to_480:
                 image_data = _downscale_to_480(image_data)
             
             success = _embed_artwork(file_path, image_data, mime_type)
 
+            if success and verbose:
+                print(f"Successfully embedded artwork into {file_path}")
+            else:
+                print(f"Failed to embed artwork into {file_path}")
+
             return success
         else:
             print(f"Warning: URL does not appear to be an image (Content-Type: {content_type})")
-            return None
+            return False
     
     except Exception as e:
         print(f"Error downloading artwork image: {e}")
-        return None
+        return False
     
 
 
