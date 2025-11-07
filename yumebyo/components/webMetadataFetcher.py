@@ -17,7 +17,7 @@ def init_browser():
     """Initialize the Playwright browser and context."""
     global _p, _browser, _context
     _p = sync_playwright().start()
-    _browser = _p.firefox.launch(headless=True)  # headless=True if you don't need to see it
+    _browser = _p.firefox.launch(headless=False)  # headless=True if you don't need to see it
     _context = _browser.new_context()
     print("Browser started!")
 
@@ -147,43 +147,3 @@ def build_musichoarders_url_with_params(
         return f"{base_url}{separator}{query_string}"
     
     return base_url
-
-
-def get_artwork_url_from_music_file(
-    file_path: str,
-    base_url: str = "https://covers.musichoarders.xyz",
-    theme: Optional[str] = None,
-    resolution: Optional[str] = None,
-    sources: Optional[List[str]] = None,
-    country: Optional[str] = None
-) -> str:
-    """
-    Extract metadata from a music file and build an artwork URL.
-    
-    Args:
-        file_path: Path to the music file
-        base_url: Base URL for the artwork service
-        theme: Optional theme ('light' or 'dark')
-        resolution: Optional resolution value
-        sources: Optional list of sources
-        country: Optional country code
-    
-    Returns:
-        Complete URL with query parameters based on extracted metadata
-    """
-    from .localMusicScanner import get_music_metadata
-    
-    metadata = get_music_metadata(file_path)
-    
-    return build_musichoarders_url_with_params(
-        base_url=base_url,
-        theme=theme,
-        resolution=resolution,
-        sources=['spotify', 'applemusic'],
-        country=country,
-        artist=metadata['artist'],
-        album=metadata['album']
-    )
-
-
-
