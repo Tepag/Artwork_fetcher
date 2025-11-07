@@ -17,7 +17,7 @@ def init_browser():
     """Initialize the Playwright browser and context."""
     global _p, _browser, _context
     _p = sync_playwright().start()
-    _browser = _p.firefox.launch(headless=False)  # headless=True if you don't need to see it
+    _browser = _p.firefox.launch(headless=True)  # headless=True if you don't need to see it
     _context = _browser.new_context()
     print("Browser started!")
 

@@ -1,18 +1,28 @@
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Iterable, Tuple
 import os
+import base64
+import io
 
 # Check if mutagen is installed
 try:
     from mutagen import File
     from mutagen.mp3 import MP3
-    from mutagen.flac import FLAC
+    from mutagen.flac import FLAC, Picture
     from mutagen.mp4 import MP4
     from mutagen.oggvorbis import OggVorbis
     MUTAGEN_AVAILABLE = True
 except ImportError:
     MUTAGEN_AVAILABLE = False
     print("Warning: mutagen not installed. Install it with: pip install mutagen")
+
+
+try:
+    from PIL import Image  # type: ignore
+
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 
 
@@ -51,6 +61,169 @@ def get_local_music_file_paths(
 
 
 
+def _iter_embedded_artwork(
+    audio_file: "File"
+) -> Iterable[Tuple[bytes, Optional[int], Optional[int]]]:
+    """Yield tuples of (image_data, width, height) for embedded artwork."""
+
+    if isinstance(audio_file, MP3):
+        tags = getattr(audio_file, "tags", None)
+        if tags:
+            for frame in list(tags.values()):
+                frame_id = getattr(frame, "FrameID", "")
+                if isinstance(frame_id, str) and frame_id.startswith("APIC"):
+                    data = getattr(frame, "data", None)
+                    if data:
+                        yield data, None, None
+
+    elif isinstance(audio_file, FLAC):
+        for picture in getattr(audio_file, "pictures", []) or []:
+            data = getattr(picture, "data", None)
+            if data:
+                width = getattr(picture, "width", None)
+                height = getattr(picture, "height", None)
+                yield data, width, height
+
+    elif isinstance(audio_file, MP4):
+        tags = getattr(audio_file, "tags", None)
+        if tags:
+            covers = tags.get("covr")
+            if covers:
+                for cover in covers:
+                    try:
+                        data = bytes(cover)
+                    except Exception:
+                        data = None
+                    if data:
+                        yield data, None, None
+
+    elif isinstance(audio_file, OggVorbis):
+        tags = getattr(audio_file, "tags", None)
+        if tags:
+            for key in ("METADATA_BLOCK_PICTURE", "metadata_block_picture"):
+                entries = tags.get(key)
+                if not entries:
+                    continue
+                for entry in entries:
+                    try:
+                        picture_bytes = base64.b64decode(entry)
+                        picture = Picture(picture_bytes)
+                        data = picture.data
+                        width = getattr(picture, "width", None)
+                        height = getattr(picture, "height", None)
+                    except Exception:
+                        continue
+                    if data:
+                        yield data, width, height
+
+    else:
+        tags = getattr(audio_file, "tags", None)
+        if tags:
+            for key, value in list(tags.items()):
+                key_str = str(key)
+                if "PICTURE" in key_str.upper() or key_str.startswith("APIC"):
+                    if isinstance(value, bytes):
+                        yield value, None, None
+
+
+def _is_square_image(image_data: bytes, width: Optional[int], height: Optional[int]) -> Optional[bool]:
+    """Return True if image is square, False if not, None if unknown."""
+
+    if width and height:
+        return width == height
+
+    if not image_data:
+        return None
+
+    if not PIL_AVAILABLE:
+        return None
+
+    try:
+        with Image.open(io.BytesIO(image_data)) as img:
+            img.load()
+            return img.width == img.height
+    except Exception:
+        return None
+
+
+def remove_embedded_artwork(file_path: str, audio_file: Optional["File"] = None) -> bool:
+    """Remove all embedded artwork from the file."""
+
+    if not MUTAGEN_AVAILABLE:
+        return False
+
+    if not os.path.exists(file_path):
+        return False
+
+    close_file = False
+    if audio_file is None:
+        audio_file = File(file_path)
+        close_file = True
+
+    if audio_file is None:
+        return False
+
+    removed = False
+
+    try:
+        if isinstance(audio_file, MP3):
+            tags = getattr(audio_file, "tags", None)
+            if tags:
+                keys_to_delete = [key for key in tags.keys() if str(key).startswith("APIC")]
+                for key in keys_to_delete:
+                    del tags[key]
+                    removed = True
+                if removed:
+                    audio_file.save()
+
+        elif isinstance(audio_file, FLAC):
+            if getattr(audio_file, "pictures", None):
+                audio_file.clear_pictures()
+                audio_file.save()
+                removed = True
+
+        elif isinstance(audio_file, MP4):
+            tags = getattr(audio_file, "tags", None)
+            if tags and "covr" in tags:
+                tags.pop("covr", None)
+                audio_file.save()
+                removed = True
+
+        elif isinstance(audio_file, OggVorbis):
+            tags = getattr(audio_file, "tags", None)
+            if tags:
+                deleted = False
+                for key in ("METADATA_BLOCK_PICTURE", "metadata_block_picture"):
+                    if key in tags:
+                        del tags[key]
+                        deleted = True
+                if deleted:
+                    audio_file.save()
+                    removed = True
+
+        else:
+            tags = getattr(audio_file, "tags", None)
+            if tags:
+                keys_to_delete = [key for key in tags.keys() if "PICTURE" in str(key).upper()]
+                for key in keys_to_delete:
+                    del tags[key]
+                    removed = True
+                if removed:
+                    audio_file.save()
+
+    except Exception as exc:
+        print(f"Warning: failed to remove artwork from {file_path}: {exc}")
+        return False
+    finally:
+        if close_file and hasattr(audio_file, "close"):
+            try:
+                audio_file.close()  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+    return removed
+
+
 def has_embedded_artwork(file_path: str) -> bool:
     """
     Check if a music file has embedded artwork/cover art using mutagen.
@@ -73,48 +246,24 @@ def has_embedded_artwork(file_path: str) -> bool:
         if audio_file is None:
             return False
         
-        # Check for embedded artwork based on file type
-        if isinstance(audio_file, MP3):
-            if audio_file.tags is not None:
-                # MP3 uses APIC (Attached Picture) frames
-                if 'APIC:' in audio_file.tags or 'APIC' in audio_file.tags:
-                    return True
-                # Also check for cover art tags
-                for key in audio_file.tags.keys():
-                    if key.startswith('APIC'):
-                        return True
-        
-        elif isinstance(audio_file, FLAC):
-            if audio_file.pictures:
-                return len(audio_file.pictures) > 0
-        
-        elif isinstance(audio_file, MP4):
-            if audio_file.tags is not None:
-                # MP4 uses 'covr' tag for artwork
-                if 'covr' in audio_file.tags:
-                    return True
-        
-        elif isinstance(audio_file, OggVorbis):
-            if audio_file.tags is not None:
-                # OGG can have METADATA_BLOCK_PICTURE in tags
-                if 'METADATA_BLOCK_PICTURE' in audio_file.tags:
-                    return True
-                if 'metadata_block_picture' in audio_file.tags:
-                    return True
-        
-        # Generic fallback - check for common artwork tag names
-        if hasattr(audio_file, 'tags') and audio_file.tags is not None:
-            tags = audio_file.tags
-            artwork_keys = ['APIC', 'covr', 'METADATA_BLOCK_PICTURE', 'metadata_block_picture']
-            for key in tags.keys():
-                if any(art_key in str(key) for art_key in artwork_keys):
-                    return True
-            # Also check if key starts with APIC
-            for key in tags.keys():
-                if str(key).startswith('APIC'):
-                    return True
-        
-        return False
+        artwork_found = False
+        square_artwork_found = False
+
+        for artwork_data, width, height in _iter_embedded_artwork(audio_file):
+            artwork_found = True
+            is_square = _is_square_image(artwork_data, width, height)
+
+            if is_square is False:
+                remove_embedded_artwork(file_path, audio_file)
+                return False
+
+            if is_square is True:
+                square_artwork_found = True
+
+        if square_artwork_found:
+            return True
+
+        return artwork_found
     
     except Exception:
         return False
