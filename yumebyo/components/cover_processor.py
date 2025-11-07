@@ -6,11 +6,7 @@ import io
 from typing import Any, Dict, Iterable, Optional, Tuple
 
 import requests
-
-from .youtubeMusicMetadataFetcher import (
-    fetch_primary_youtube_music_metadata,
-)
-
+from .youtubeMusicMetadataFetcher import fetch_primary_youtube_music_metadata
 
 try:
     from PIL import Image  # type: ignore

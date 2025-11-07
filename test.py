@@ -20,10 +20,10 @@ def main() -> None:
             title="Harder Better Faster Stronger",
             limit=3,
         )
-        print("\nTop 3 normalised results:")
-        for idx, entry in enumerate(results, start=1):
-            artist_names = ", ".join(entry.get("artists", [])) or "Unknown artist"
-            print(f"{idx}. {entry.get('title', 'Unknown title')} - {artist_names}")
+        # print("\nTop 3 normalised results:")
+        # for idx, entry in enumerate(results, start=1):
+            # artist_names = ", ".join(entry.get("artists", [])) or "Unknown artist"
+            # print(f"{idx}. {entry.get('title', 'Unknown title')} - {artist_names}")
     except ImportError as exc:
         print(exc)
 
