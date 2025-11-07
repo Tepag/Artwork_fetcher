@@ -97,10 +97,8 @@ def download_and_process_youtube_cover(
     Args:
         metadata: A metadata dictionary as returned by
             `youtubeMusicMetadataFetcher`.
-        force_480: When True, ensure the final artwork is exactly 480x480.
-            When False, images with any dimension below 480px are cropped to a
-            square and then upscaled to 480px, while larger images are cropped
-            to a centred square but keep their native resolution.
+        force_480: Retained for backwards compatibility. The processed artwork
+            is always resized to 480x480 to meet embedding requirements.
         background_color: Retained for backwards compatibility; currently
             unused because images are cropped instead of padded.
 

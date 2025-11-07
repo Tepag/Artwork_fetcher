@@ -22,14 +22,21 @@ def fetch_first_artwork_image(artwork_url: str) -> Optional[str]:
     """
     context = get_context()
     page = context.new_page()
-    page.goto(artwork_url, wait_until="networkidle")
-    time.sleep(10)
-    imgs = page.query_selector_all("img")
-    image_urls = [img.get_attribute("src") for img in imgs if img.get_attribute("src")]
-    print(f"image_urls: {image_urls}")
-    if image_urls:
-        return image_urls[0]
-    return None
+
+    try:
+        page.goto(artwork_url, wait_until="networkidle")
+        try:
+            page.wait_for_selector("img", timeout=10000)
+        except Exception:
+            print("Warning: timed out waiting for artwork images to load.")
+        imgs = page.query_selector_all("img")
+        image_urls = [img.get_attribute("src") for img in imgs if img.get_attribute("src")]
+        print(f"image_urls: {image_urls}")
+        if image_urls:
+            return image_urls[0]
+        return None
+    finally:
+        page.close()
 
 
 def download_artwork_image(image_url: str) -> Optional[bytes]:
