@@ -81,7 +81,14 @@ def search_youtube_music_metadata(
     if client is None:
         client = init_youtube_music_client()
 
-    search_results = client.search(query, filter="videos", limit=limit)
+    # INSERT_YOUR_CODE
+    # Choose the search filter based on whether artist appears to be "nightcore"
+    search_filter = "songs"
+
+    if artist is not None and "nightcore" in artist.lower() or title is not None and "nightcore" in title.lower():
+        search_filter = "videos"
+        print(f"search in videos")
+    search_results = client.search(query, filter=search_filter, limit=limit)
 
     normalised_results: List[Dict[str, Any]] = []
     for item in search_results:

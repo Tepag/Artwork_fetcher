@@ -72,15 +72,15 @@ def _download_image_data(url: str, timeout: int = 10) -> Optional[bytes]:
 
 
 def _crop_center_square(image: "Image.Image") -> "Image.Image":
-    """Crop the image to a centred square using the shortest dimension."""
+    """Crop the image to a centred square prioritising the maximum available height."""
 
     width, height = image.size
     if width == height:
         return image
 
-    side = min(width, height)
-    left = (width - side) // 2
-    top = (height - side) // 2
+    side = height if width >= height else width
+    left = max((width - side) // 2, 0)
+    top = max((height - side) // 2, 0)
     right = left + side
     bottom = top + side
     return image.crop((left, top, right, bottom))
@@ -132,7 +132,7 @@ def download_and_process_youtube_cover(
     image = Image.open(io.BytesIO(image_data)).convert("RGB")
     image = _crop_center_square(image)
 
-    if force_480 or image.width < 480:
+    if image.width != 480:
         image = image.resize((480, 480), Image.LANCZOS)
 
     buffer = io.BytesIO()
